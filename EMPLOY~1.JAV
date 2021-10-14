@@ -1,101 +1,108 @@
-package com.mindtree.employeemanagerapp.repository;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.Rollback;
+package com.mindtree.employeemanagerapp.service.serviceimpl.mockito;
 
-import com.mindtree.employeemanagerapp.model.Employee;
-import com.mindtree.employeemanagerapp.repository.EmployeeRepository;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
-import javax.sql.DataSource;
+import java.awt.PageAttributes.MediaType;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
-@DataJpaTest
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class EmployeeRepositoryTests {
+import org.apache.coyote.Response;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.util.Assert;
 
-    @Autowired
-    private EmployeeRepository employeeRepository;
+import com.mindtree.employeemanagerapp.controller.EmployeeController;
+import com.mindtree.employeemanagerapp.model.Employee;
+import com.mindtree.employeemanagerapp.service.EmployeeService;
+import com.mindtree.employeemanagerapp.service.serviceimpl.EmployeeServiceImpl;
 
-    // JUnit test for saveEmployee
-    @Test
-    @Order(1)
-    @Rollback(value = false)
-    public void saveEmployeeTest(){
+class EmployeeServiceImplTest {
 
-        Employee employee = ((Object) Employee.builder())
-                .firstName("Ramesh")
-                .lastName("Fadatare")
-                .email("ramesh@gmail.com")
-                .build();
-
-        employeeRepository.save(employee);
-
-        Assertions.assertThat(employee.getId()).isGreaterThan(0);
-    }
-
-    @Test
-    @Order(2)
-    public void getEmployeeTest(){
-
-        Employee employee = employeeRepository.findById(1L).get();
-
-        Assertions.assertThat(employee.getId()).isEqualTo(1L);
-
-    }
-
-    @Test
-    @Order(3)
-    public void getListOfEmployeesTest(){
-
-        List<Employee> employees = employeeRepository.findAll();
-
-        Assertions.assertThat(employees.size()).isGreaterThan(0);
-
-    }
-
-    @Test
-    @Order(4)
-    @Rollback(value = false)
-    public void updateEmployeeTest(){
-
-        Employee employee = employeeRepository.findById(1L).get();
-
-        employee.setEmailId("ram@gmail.com");
-
-        Employee employeeUpdated =  employeeRepository.save(employee);
-
-        Assertions.assertThat(employeeUpdated.getEmailId()).isEqualTo("ram@gmail.com");
-
-    }
-
-    @Test
-    @Order(5)
-    @Rollback(value = false)
-    public void deleteEmployeeTest(){
-
-        Employee employee = employeeRepository.findById(1L).get();
-
-        employeeRepository.delete(employee);
-
-        //employeeRepository.deleteById(1L);
-
-        Employee employee1 = null;
-
-        Optional<Employee> optionalEmployee = employeeRepository.findAll("ram@gmail.com");
-
-        if(optionalEmployee.isPresent()){
-            employee1 = optionalEmployee.get();
-        }
-
-        Assertions.assertThat(employee1).isNull();
-    }
-
+	
+	
+	@Test
+	public void usingMockito() {
+		EmployeeService employeeService = mock(EmployeeService.class);
+		List<String> Allemployees = Arrays.asList("firstname",
+				"secondname");
+		when(employeeService.getEmployeeById(1)).thenReturn(Allemployees);
+		EmployeeSeviceImpl employeeServiceImpl = new EmployeeServiceImpl(employeeService);
+		List<String> todos = EmployeeServiceImpl.getEmployeeByName("secondname");
+		assertEquals(2, todos.size());
+	}
+	
+	@Test
+	public void firstMockTest() 
+	{
+	    //Creating a mock using the PowerMockito.mock
+	    //method for the EmployeeService class.
+	    EmployeeService mock =PowerMockito.mock(EmployeeService.class);
+	 
+	    //Next statement essentially says that when getProjectedEmployeeCount method
+	    //is called on the mocked EmployeeService instance, return 8.
+	    PowerMockito.when(mock.getEmployeeCount()).thenReturn(8);
+	 
+	    EmployeeController employeeController = new EmployeeController(mock);
+	     
+	    Assert.assertEquals(16, employeeController.getProjectedEmployeeCount());
+	}
+	
+	@Test
+	public void mockSettingsTest() {
+	    EmployeeService mock =PowerMockito.mock(EmployeeService.class, Mockito
+	        .withSettings()
+	        .name("EmployeeServiceMock")
+	        .verboseLogging());
+	    EmployeeController employeeController = new EmployeeController(mock);
+	 
+	    Employee employee = new Employee();
+	    employeeController.saveEmployee(employee);
+	 
+	    //Verifying that controller did call the
+	    //saveEmployee method on the mocked service
+	    //instance.
+	    Mockito.verify(mock).saveEmployee(employee);
+	}
+	
+	@Test
+	public void getEmployeeTest() throws Exception {
+		int id = 2;
+		MvcResult result = mockMvc
+				.perform(
+						MockMvcRequestBuilders.get("/api/employees/" + id)
+								.contentType(MediaType.APPLICATION_JSON_VALUE))
+				.andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+		String resultContent = result.getResponse().getContentAsString();
+		Response response = om.readValue(resultContent, Response.class);
+		Assert.assertTrue(response.isSuccess() == true);
+	}
+	
+	@Test
+	public void getAllEmployeeTest() throws Exception {
+		Object mockMvc;
+		MvcResult result = mockMvc
+				.perform(
+						MockMvcRequestBuilders.get("/api/employees")
+								.contentType(MediaType.APPLICATION_JSON_VALUE))
+				.andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+		String resultContent = result.getResponse().getContentAsString();
+		Response response = om.readValue(resultContent, Response.class);
+		Assert.assertTrue(response.isSuccess() == true);
+	}
+	
+	@Test
+	public void deleteEmployeeTest() throws Exception {
+		int id = 3;
+		MvcResult result = mockMvc
+				.perform(
+						MockMvcRequestBuilders.delete("/api/employees/" + id)
+								.contentType(MediaType.APPLICATION_JSON_VALUE))
+				.andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+		String resultContent = result.getResponse().getContentAsString();
+		Response response = om.readValue(resultContent, Response.class);
+		Assert.assertTrue(response.isSuccess() == true);
+	}
 }
