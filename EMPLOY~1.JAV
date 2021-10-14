@@ -1,39 +1,101 @@
-package com.mindtree.employeemanagerapp.service;
-
-import java.util.List;
+package com.mindtree.employeemanagerapp.repository;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.Rollback;
 
 import com.mindtree.employeemanagerapp.model.Employee;
+import com.mindtree.employeemanagerapp.repository.EmployeeRepository;
 
-public interface EmployeeService {
+import javax.sql.DataSource;
+import java.util.List;
+import java.util.Optional;
 
-	/**
-	 * @return list of employees
-	 */
-	List<Employee> getAllEmployees();
+@DataJpaTest
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class EmployeeRepositoryTests {
 
-	/**
-	 * @param id
-	 * @return true if employee with input id is deleted
-	 */
-	boolean deleteEmployee(Long id);
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
-	/**
-	 * @param id
-	 * @param employee which will update old employee with given id in the parameter
-	 * @return updated employee
-	 */
-	Employee updateEmployeeByIdWithNewEmployee(Long id, Employee employee);
+    // JUnit test for saveEmployee
+    @Test
+    @Order(1)
+    @Rollback(value = false)
+    public void saveEmployeeTest(){
 
-	/**
-	 * @param id
-	 * @return Employee with given id
-	 */
-	Employee getEmployeeById(Long id);
+        Employee employee = ((Object) Employee.builder())
+                .firstName("Ramesh")
+                .lastName("Fadatare")
+                .email("ramesh@gmail.com")
+                .build();
 
-	/**
-	 * @param employee
-	 * @return created employee
-	 */
-	Employee createEmployee(Employee employee);
+        employeeRepository.save(employee);
+
+        Assertions.assertThat(employee.getId()).isGreaterThan(0);
+    }
+
+    @Test
+    @Order(2)
+    public void getEmployeeTest(){
+
+        Employee employee = employeeRepository.findById(1L).get();
+
+        Assertions.assertThat(employee.getId()).isEqualTo(1L);
+
+    }
+
+    @Test
+    @Order(3)
+    public void getListOfEmployeesTest(){
+
+        List<Employee> employees = employeeRepository.findAll();
+
+        Assertions.assertThat(employees.size()).isGreaterThan(0);
+
+    }
+
+    @Test
+    @Order(4)
+    @Rollback(value = false)
+    public void updateEmployeeTest(){
+
+        Employee employee = employeeRepository.findById(1L).get();
+
+        employee.setEmailId("ram@gmail.com");
+
+        Employee employeeUpdated =  employeeRepository.save(employee);
+
+        Assertions.assertThat(employeeUpdated.getEmailId()).isEqualTo("ram@gmail.com");
+
+    }
+
+    @Test
+    @Order(5)
+    @Rollback(value = false)
+    public void deleteEmployeeTest(){
+
+        Employee employee = employeeRepository.findById(1L).get();
+
+        employeeRepository.delete(employee);
+
+        //employeeRepository.deleteById(1L);
+
+        Employee employee1 = null;
+
+        Optional<Employee> optionalEmployee = employeeRepository.findAll("ram@gmail.com");
+
+        if(optionalEmployee.isPresent()){
+            employee1 = optionalEmployee.get();
+        }
+
+        Assertions.assertThat(employee1).isNull();
+    }
 
 }
